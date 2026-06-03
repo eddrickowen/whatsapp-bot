@@ -1,0 +1,833 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Agri Prima Indotama - Bot Dashboard</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        body { font-family: 'Inter', sans-serif; background-color: #f8fafc; }
+        .spinner { border: 3px solid rgba(0,0,0,0.1); width: 24px; height: 24px; border-radius: 50%; border-left-color: #3b82f6; animation: spin 1s linear infinite; }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+        
+        /* Modal Styles */
+        #image-modal { background-color: rgba(0, 0, 0, 0.8); }
+        #modal-image { max-height: 90vh; max-width: 90vw; }
+        
+        /* Custom Toggle Switch */
+        .toggle-checkbox:checked { right: 0; border-color: #3b82f6; }
+        .toggle-checkbox:checked + .toggle-label { background-color: #3b82f6; }
+    </style>
+</head>
+<body class="text-slate-800 flex h-screen overflow-hidden">
+    
+    <!-- Sidebar / Topbar equivalent for desktop -->
+    <div id="sidebar" class="w-64 bg-slate-900 text-white flex flex-col h-full shadow-xl fixed md:relative z-20 transform -translate-x-full md:translate-x-0 transition-transform duration-300">
+        <div class="p-6 border-b border-slate-700 flex justify-between items-center">
+            <div>
+                <h1 class="text-xl font-bold tracking-tight text-white">Bot Dashboard</h1>
+                <p class="text-xs text-slate-400 mt-1">Agri Prima Indotama</p>
+            </div>
+            <button onclick="toggleSidebar()" class="md:hidden text-slate-400 hover:text-white">
+                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+            </button>
+        </div>
+        <nav class="flex-1 py-4 space-y-1">
+            <button onclick="switchTab('config')" id="nav-config" class="w-full text-left px-6 py-3 bg-slate-800 text-white font-medium border-l-4 border-blue-500 transition-colors">
+                ⚙️ Configuration
+            </button>
+            <button onclick="switchTab('explorer')" id="nav-explorer" class="w-full text-left px-6 py-3 text-slate-300 hover:bg-slate-800 hover:text-white font-medium border-l-4 border-transparent hover:border-slate-500 transition-colors">
+                📁 File Explorer
+            </button>
+            <button onclick="switchTab('history')" id="nav-history" class="w-full text-left px-6 py-3 text-slate-300 hover:bg-slate-800 hover:text-white font-medium border-l-4 border-transparent hover:border-slate-500 transition-colors">
+                📜 Activity History
+            </button>
+        </nav>
+        <div class="p-4 text-xs text-slate-500 border-t border-slate-700 text-center">
+            System v2.0 - Active
+        </div>
+    </div>
+
+    <!-- Main Content -->
+    <div class="flex-1 flex flex-col h-full overflow-hidden">
+        <!-- Header -->
+        <header class="bg-white shadow-sm border-b border-slate-200 px-8 py-4 flex justify-between items-center z-10">
+            <div class="flex items-center">
+                <button onclick="toggleSidebar()" class="md:hidden mr-4 text-slate-500 hover:text-slate-700">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"></path></svg>
+                </button>
+                <h2 id="page-title" class="text-2xl font-bold text-slate-800">System Configuration</h2>
+            </div>
+            <div id="status-badge" class="px-3 py-1 rounded-full bg-slate-100 text-slate-500 text-sm font-semibold flex items-center shadow-sm">
+                <span id="status-dot" class="w-2 h-2 rounded-full bg-slate-400 mr-2"></span> <span id="status-text">Checking...</span>
+            </div>
+        </header>
+
+        <!-- Notification Toast -->
+        <div id="toast" class="absolute top-20 right-8 transform transition-transform duration-300 translate-x-full bg-slate-800 text-white px-4 py-3 rounded shadow-lg z-50 flex items-center">
+            <span id="toast-icon" class="mr-2">✅</span>
+            <span id="toast-msg">Success</span>
+        </div>
+
+        <!-- Scrollable Content Area -->
+        <main class="flex-1 overflow-y-auto p-8 relative">
+            
+            <!-- ================= CONFIGURATION TAB ================= -->
+            <div id="tab-config" class="max-w-5xl mx-auto space-y-8">
+                
+                <!-- General Settings Section -->
+                <div class="bg-white p-6 rounded-xl shadow-sm border border-slate-200">
+                    <div class="mb-6 border-b border-slate-100 pb-4">
+                        <h3 class="text-lg font-bold text-slate-800">General Settings</h3>
+                        <p class="text-sm text-slate-500">Configure core behaviors like document categories and auto-replies.</p>
+                    </div>
+
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-8 mb-6">
+                        <!-- Toggles -->
+                        <div class="space-y-4">
+                            <!-- Auto Reply -->
+                            <div class="flex items-center justify-between">
+                                <div>
+                                    <h4 class="font-semibold text-slate-700">Auto-Reply Sender</h4>
+                                    <p class="text-xs text-slate-500">Reply to WhatsApp sender upon success/failure.</p>
+                                </div>
+                                <div class="relative inline-block w-10 mr-2 align-middle select-none transition duration-200 ease-in">
+                                    <input type="checkbox" name="toggle" id="toggle-autoreply" class="toggle-checkbox absolute block w-6 h-6 rounded-full bg-white border-4 appearance-none cursor-pointer z-10 right-4" onchange="saveGeneralConfig()"/>
+                                    <label for="toggle-autoreply" class="toggle-label block overflow-hidden h-6 rounded-full bg-slate-300 cursor-pointer"></label>
+                                </div>
+                            </div>
+                            
+                            <!-- OCR -->
+                            <div class="flex items-center justify-between">
+                                <div>
+                                    <h4 class="font-semibold text-slate-700">Experimental: Image OCR</h4>
+                                    <p class="text-xs text-slate-500">Read text inside images if caption fails (Slow).</p>
+                                </div>
+                                <div class="relative inline-block w-10 mr-2 align-middle select-none transition duration-200 ease-in">
+                                    <input type="checkbox" name="toggle" id="toggle-ocr" class="toggle-checkbox absolute block w-6 h-6 rounded-full bg-white border-4 appearance-none cursor-pointer z-10 right-4" onchange="saveGeneralConfig()"/>
+                                    <label for="toggle-ocr" class="toggle-label block overflow-hidden h-6 rounded-full bg-slate-300 cursor-pointer"></label>
+                                </div>
+                            </div>
+
+                            <!-- Media Storage Format (WebP Lossless) -->
+                            <div class="flex items-center justify-between border-t border-slate-100 pt-3">
+                                <div>
+                                    <h4 class="font-semibold text-slate-700">Media Storage Format</h4>
+                                    <p class="text-xs text-slate-500">Choose storage format for incoming WhatsApp images.</p>
+                                </div>
+                                <select id="select-media-format" onchange="saveGeneralConfig()" class="border border-slate-300 rounded-md py-1 px-3 text-sm focus:outline-none focus:border-blue-500 bg-white font-medium text-slate-700">
+                                    <option value="original">Original (Default)</option>
+                                    <option value="webp_lossless">WebP Lossless (Sangat Hemat)</option>
+                                </select>
+                            </div>
+                        </div>
+                        
+                        <!-- Categories -->
+                        <div>
+                            <h4 class="font-semibold text-slate-700 mb-2">Valid Document Categories</h4>
+                            <div class="flex max-w-md mb-3">
+                                <input type="text" id="new-category-input" class="flex-1 border-y border-l border-slate-300 rounded-l py-1 px-3 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 text-sm uppercase" placeholder="e.g. INVOICE">
+                                <button onclick="addCategory()" class="bg-blue-600 hover:bg-blue-700 text-white px-3 py-1 rounded-r text-sm font-medium transition">Add</button>
+                            </div>
+                            <div id="categories-container" class="flex flex-wrap gap-2">
+                                <!-- Categories injected here -->
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Smart Dictionary Section -->
+                <div class="bg-white p-6 rounded-xl shadow-sm border border-slate-200">
+                    <div class="mb-6 border-b border-slate-100 pb-4">
+                        <h3 class="text-lg font-bold text-slate-800">Smart Client Dictionary</h3>
+                        <p class="text-sm text-slate-500">Register company abbreviations to enhance the bot's free-text recognition engine. (e.g. "PT. SJIO AGRO" -> "SJIO")</p>
+                    </div>
+                    
+                    <div class="flex max-w-md mb-6">
+                        <input type="text" id="new-client-input" class="flex-1 border-y border-l border-slate-300 rounded-l py-2 px-3 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 text-sm" placeholder="e.g. SJIO, ARM">
+                        <button onclick="addClient()" class="bg-slate-800 hover:bg-slate-900 text-white px-4 py-2 rounded-r text-sm font-medium transition">Add Keyword</button>
+                    </div>
+                    
+                    <div id="clients-container" class="grid grid-cols-2 md:grid-cols-4 gap-3">
+                        <!-- Client tags will be injected here -->
+                    </div>
+                </div>
+
+                <!-- Targeted Listeners Section -->
+                <div class="bg-white p-6 rounded-xl shadow-sm border border-slate-200">
+                    <div class="mb-6 border-b border-slate-100 pb-4 flex justify-between items-center">
+                        <div>
+                            <h3 class="text-lg font-bold text-slate-800">Targeted Listeners</h3>
+                            <p class="text-sm text-slate-500">Select which groups and individual contacts the bot should actively monitor.</p>
+                        </div>
+                        <button onclick="syncContacts()" id="btn-sync" class="bg-slate-100 hover:bg-slate-200 text-slate-600 text-sm font-medium py-2 px-4 rounded border border-slate-300 transition flex items-center">
+                            🔄 Sync WhatsApp
+                        </button>
+                    </div>
+
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+                        <!-- Groups -->
+                        <div>
+                            <div class="flex justify-between items-center mb-2">
+                                <h4 class="font-semibold text-slate-700">Monitored Groups</h4>
+                                <span id="groups-count" class="text-xs bg-slate-100 px-2 py-1 rounded text-slate-500">0</span>
+                            </div>
+                            <input type="text" id="search-groups" onkeyup="filterList('groups')" placeholder="Search groups..." class="w-full border border-slate-300 rounded py-1.5 px-3 mb-3 text-sm focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500">
+                            
+                            <div id="groups-loading" class="flex justify-center py-4"><div class="spinner"></div></div>
+                            <div id="groups-container" class="hidden space-y-1 max-h-60 overflow-y-auto pr-2 border rounded-md p-2 bg-slate-50"></div>
+                        </div>
+                        
+                        <!-- Users -->
+                        <div>
+                            <div class="flex justify-between items-center mb-2">
+                                <h4 class="font-semibold text-slate-700">Monitored Users (DMs)</h4>
+                                <span id="users-count" class="text-xs bg-slate-100 px-2 py-1 rounded text-slate-500">0</span>
+                            </div>
+                            <input type="text" id="search-users" onkeyup="filterList('users')" placeholder="Search contacts..." class="w-full border border-slate-300 rounded py-1.5 px-3 mb-3 text-sm focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500">
+                            
+                            <div id="users-loading" class="flex justify-center py-4"><div class="spinner"></div></div>
+                            <div id="users-container" class="hidden space-y-1 max-h-60 overflow-y-auto pr-2 border rounded-md p-2 bg-slate-50"></div>
+                        </div>
+                    </div>
+                    
+                    <div class="mt-6 flex justify-end">
+                        <button onclick="saveListeners()" class="bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 px-6 rounded shadow-sm transition">
+                            Save Listeners
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+
+            <!-- ================= FILE EXPLORER TAB ================= -->
+            <div id="tab-explorer" class="hidden max-w-6xl mx-auto h-full flex flex-col">
+                
+                <div class="bg-white p-4 rounded-t-xl shadow-sm border-x border-t border-slate-200 flex flex-col md:flex-row md:items-center justify-between gap-4">
+                    <div class="flex items-center space-x-2 text-sm overflow-x-auto" id="breadcrumbs">
+                        <!-- Breadcrumbs -->
+                    </div>
+                    <div class="flex items-center space-x-3">
+                        <input type="text" id="explorer-search" onkeyup="filterExplorer()" placeholder="Cari file/folder..." class="border border-slate-300 rounded-md py-1.5 px-3 text-sm focus:outline-none focus:border-blue-500 w-48 md:w-64 bg-slate-50 font-medium text-slate-700">
+                        <button onclick="fetchFiles(currentExplorerPath)" class="text-slate-400 hover:text-slate-600 flex-shrink-0 font-semibold text-sm flex items-center bg-slate-100 hover:bg-slate-200 px-3 py-1.5 rounded transition border border-slate-300">
+                            🔄 Refresh
+                        </button>
+                    </div>
+                </div>
+                
+                <div class="flex-1 bg-white border border-slate-200 rounded-b-xl shadow-sm overflow-hidden flex flex-col">
+                    <!-- Table Header -->
+                    <div class="grid grid-cols-12 gap-4 px-6 py-3 bg-slate-50 border-b border-slate-200 text-xs font-semibold text-slate-500 uppercase tracking-wider">
+                        <div class="col-span-8">Name</div>
+                        <div class="col-span-4 text-right">Action</div>
+                    </div>
+                    
+                    <!-- File List -->
+                    <div id="explorer-loading" class="flex justify-center items-center h-40 hidden">
+                        <div class="spinner"></div>
+                    </div>
+                    
+                    <div id="explorer-list" class="flex-1 overflow-y-auto">
+                        <!-- Files injected here -->
+                    </div>
+                </div>
+            </div>
+
+            <!-- ================= HISTORY TAB ================= -->
+            <div id="tab-history" class="hidden max-w-6xl mx-auto h-full flex flex-col">
+                <div class="bg-white p-4 rounded-t-xl shadow-sm border-x border-t border-slate-200 flex justify-between items-center">
+                    <div class="flex space-x-2">
+                        <button onclick="fetchHistory('ALL')" id="filter-ALL" class="px-3 py-1 rounded text-sm font-medium bg-slate-800 text-white">All</button>
+                        <button onclick="fetchHistory('SUCCESS')" id="filter-SUCCESS" class="px-3 py-1 rounded text-sm font-medium bg-slate-100 text-slate-600 hover:bg-slate-200">Success</button>
+                        <button onclick="fetchHistory('WARNING')" id="filter-WARNING" class="px-3 py-1 rounded text-sm font-medium bg-slate-100 text-slate-600 hover:bg-slate-200">Warning</button>
+                        <button onclick="fetchHistory('ERROR')" id="filter-ERROR" class="px-3 py-1 rounded text-sm font-medium bg-slate-100 text-slate-600 hover:bg-slate-200">Error</button>
+                    </div>
+                    <button onclick="fetchHistory(currentHistoryFilter, true)" class="text-slate-400 hover:text-slate-600 flex-shrink-0">
+                        🔄 Refresh
+                    </button>
+                </div>
+                
+                <div class="flex-1 bg-white border border-slate-200 rounded-b-xl shadow-sm overflow-hidden flex flex-col">
+                    <div class="grid grid-cols-12 gap-4 px-6 py-3 bg-slate-50 border-b border-slate-200 text-xs font-semibold text-slate-500 uppercase tracking-wider">
+                        <div class="col-span-2">Time</div>
+                        <div class="col-span-2">Type</div>
+                        <div class="col-span-3">Sender</div>
+                        <div class="col-span-5">Details</div>
+                    </div>
+                    <div id="history-loading" class="flex justify-center items-center h-40 hidden">
+                        <div class="spinner"></div>
+                    </div>
+                    <div id="history-list" class="flex-1 overflow-y-auto">
+                        <!-- History logs injected here -->
+                    </div>
+                </div>
+            </div>
+            
+        </main>
+    </div>
+
+    <!-- Image Preview Modal -->
+    <div id="image-modal" class="fixed inset-0 z-50 hidden flex justify-center items-center" onclick="closeModal()">
+        <span class="absolute top-4 right-8 text-white text-3xl font-bold cursor-pointer">&times;</span>
+        <img id="modal-image" src="" alt="Preview" class="rounded shadow-2xl" onclick="event.stopPropagation()">
+    </div>
+
+    <script>
+        // --- HELPERS ---
+        function escapeHtml(unsafe) {
+            if (!unsafe) return '';
+            return unsafe
+                 .replace(/&/g, "&amp;")
+                 .replace(/</g, "&lt;")
+                 .replace(/>/g, "&gt;")
+                 .replace(/"/g, "&quot;")
+                 .replace(/'/g, "&#039;");
+        }
+
+        function escapeQuotes(unsafe) {
+            if (!unsafe) return '';
+            return unsafe.replace(/'/g, "\\'").replace(/"/g, '\\"');
+        }
+
+        // Handle Escape key for Modal
+        document.addEventListener('keydown', function(event) {
+            if (event.key === "Escape") {
+                closeModal();
+            }
+        });
+
+        // --- STATE ---
+        let currentConfig = { target_groups: [], target_users: [], known_clients: [], valid_categories: [], auto_reply: true, use_ocr: false };
+        let cachedGroups = [];
+        let cachedUsers = [];
+        let currentExplorerPath = '';
+
+        function toggleSidebar() {
+            const sidebar = document.getElementById('sidebar');
+            sidebar.classList.toggle('-translate-x-full');
+        }
+
+        // --- INIT ---
+        async function init() {
+            await fetchConfig();
+            fetchGroupsAndUsers();
+            renderClients();
+            renderCategories();
+            
+            // Set toggles & selects
+            document.getElementById('toggle-autoreply').checked = currentConfig.auto_reply;
+            document.getElementById('toggle-ocr').checked = currentConfig.use_ocr;
+            if (currentConfig.media_format) {
+                document.getElementById('select-media-format').value = currentConfig.media_format;
+            }
+            
+            // Start polling status
+            checkStatus();
+            setInterval(checkStatus, 10000); // every 10s
+        }
+
+        // --- NAVIGATION ---
+        function switchTab(tab) {
+            document.getElementById('tab-config').classList.add('hidden');
+            document.getElementById('tab-explorer').classList.add('hidden');
+            document.getElementById('tab-history').classList.add('hidden');
+            
+            const inactiveClass = "w-full text-left px-6 py-3 text-slate-300 hover:bg-slate-800 hover:text-white font-medium border-l-4 border-transparent hover:border-slate-500 transition-colors";
+            const activeClass = "w-full text-left px-6 py-3 bg-slate-800 text-white font-medium border-l-4 border-blue-500 transition-colors";
+            
+            document.getElementById('nav-config').className = inactiveClass;
+            document.getElementById('nav-explorer').className = inactiveClass;
+            document.getElementById('nav-history').className = inactiveClass;
+            
+            if (tab === 'config') {
+                document.getElementById('tab-config').classList.remove('hidden');
+                document.getElementById('nav-config').className = activeClass;
+                document.getElementById('page-title').innerText = "System Configuration";
+            } else if (tab === 'explorer') {
+                document.getElementById('tab-explorer').classList.remove('hidden');
+                document.getElementById('nav-explorer').className = activeClass;
+                document.getElementById('page-title').innerText = "File Explorer";
+                if(currentExplorerPath === '') fetchFiles('');
+            } else if (tab === 'history') {
+                document.getElementById('tab-history').classList.remove('hidden');
+                document.getElementById('nav-history').className = activeClass;
+                document.getElementById('page-title').innerText = "Activity History";
+                fetchHistory('ALL');
+            }
+            
+            if (window.innerWidth < 768) {
+                document.getElementById('sidebar').classList.add('-translate-x-full');
+            }
+        }
+
+        // --- TOAST ALERTS & STATUS ---
+        let toastTimeout = null;
+        function showToast(msg, type = 'success') {
+            const toast = document.getElementById('toast');
+            document.getElementById('toast-msg').innerText = msg;
+            document.getElementById('toast-icon').innerText = type === 'success' ? '✅' : '❌';
+            toast.classList.remove('translate-x-full');
+            
+            if (toastTimeout) clearTimeout(toastTimeout);
+            toastTimeout = setTimeout(() => {
+                toast.classList.add('translate-x-full');
+            }, 3000);
+        }
+
+        async function checkStatus() {
+            try {
+                const res = await fetch('/api/status');
+                const data = await res.json();
+                const badge = document.getElementById('status-badge');
+                const dot = document.getElementById('status-dot');
+                const txt = document.getElementById('status-text');
+                
+                if (data.connected) {
+                    badge.className = "px-3 py-1 rounded-full bg-green-100 text-green-700 text-sm font-semibold flex items-center shadow-sm";
+                    dot.className = "w-2 h-2 rounded-full bg-green-500 mr-2 animate-pulse";
+                    txt.innerText = "Online";
+                } else {
+                    badge.className = "px-3 py-1 rounded-full bg-red-100 text-red-700 text-sm font-semibold flex items-center shadow-sm";
+                    dot.className = "w-2 h-2 rounded-full bg-red-500 mr-2";
+                    txt.innerText = "Disconnected";
+                }
+            } catch (e) {
+                // Network error
+                document.getElementById('status-text').innerText = "Offline";
+            }
+        }
+
+        async function syncContacts() {
+            const btn = document.getElementById('btn-sync');
+            btn.innerHTML = `<div class="spinner mr-2" style="width: 16px; height: 16px; border-width: 2px;"></div> Syncing...`;
+            try {
+                const res = await fetch('/api/refresh', { method: 'POST' });
+                if (res.ok) {
+                    await fetchGroupsAndUsers();
+                    showToast("Contacts synced successfully!");
+                }
+            } catch (e) {
+                showToast("Failed to sync", "error");
+            }
+            btn.innerHTML = `🔄 Sync WhatsApp`;
+        }
+
+        // --- CONFIGURATION LOGIC ---
+        async function fetchConfig() {
+            try {
+                const res = await fetch('/api/config');
+                currentConfig = await res.json();
+                if(!currentConfig.target_users) currentConfig.target_users = [];
+                if(!currentConfig.valid_categories) currentConfig.valid_categories = [];
+            } catch (e) { console.error('Failed to fetch config', e); }
+        }
+
+        async function fetchGroupsAndUsers() {
+            try {
+                const resGroups = await fetch('/api/groups');
+                cachedGroups = await resGroups.json();
+                renderCheckboxes('groups', cachedGroups, currentConfig.target_groups);
+                
+                const resUsers = await fetch('/api/contacts');
+                cachedUsers = await resUsers.json();
+                renderCheckboxes('users', cachedUsers, currentConfig.target_users);
+            } catch (e) {
+                console.error('Failed to fetch contacts', e);
+            }
+        }
+
+        function filterList(type) {
+            const query = document.getElementById(`search-${type}`).value.toLowerCase();
+            const labels = document.getElementById(`${type}-container`).getElementsByTagName('label');
+            for (let i = 0; i < labels.length; i++) {
+                const text = labels[i].innerText.toLowerCase();
+                if (text.includes(query)) {
+                    labels[i].style.display = "flex";
+                } else {
+                    labels[i].style.display = "none";
+                }
+            }
+        }
+
+        function renderCheckboxes(type, dataList, selectedArray) {
+            const container = document.getElementById(`${type}-container`);
+            const loading = document.getElementById(`${type}-loading`);
+            document.getElementById(`${type}-count`).innerText = dataList.length;
+            
+            container.innerHTML = '';
+            
+            if (dataList.length === 0) {
+                container.innerHTML = `<p class="text-slate-400 text-xs italic">No data found.</p>`;
+            } else {
+                // Sort list so that checked items appear at the very top
+                const sortedList = [...dataList].sort((a, b) => {
+                    const aChecked = selectedArray && selectedArray.includes(a.id);
+                    const bChecked = selectedArray && selectedArray.includes(b.id);
+                    if (aChecked && !bChecked) return -1;
+                    if (!aChecked && bChecked) return 1;
+                    return a.name.localeCompare(b.name);
+                });
+
+                sortedList.forEach(item => {
+                    const isChecked = selectedArray && selectedArray.includes(item.id);
+                    const bgClass = isChecked ? 'bg-blue-50 border-blue-200' : 'hover:bg-slate-100 border-transparent';
+                    
+                    container.innerHTML += `
+                        <label class="flex items-center space-x-3 p-2 rounded cursor-pointer transition border ${bgClass}">
+                            <input type="checkbox" class="${type}-checkbox form-checkbox h-4 w-4 text-blue-600 rounded border-slate-300 focus:ring-blue-500" value="${escapeHtml(item.id)}" ${isChecked ? 'checked' : ''}>
+                            <span class="text-slate-700 text-sm ${isChecked ? 'font-bold text-blue-800' : ''}">${escapeHtml(item.name)}</span>
+                        </label>
+                    `;
+                });
+            }
+            
+            loading.classList.add('hidden');
+            container.classList.remove('hidden');
+        }
+
+        async function saveListeners() {
+            const grpCheckboxes = document.querySelectorAll('.groups-checkbox');
+            const selectedGrps = [];
+            grpCheckboxes.forEach(cb => { if (cb.checked) selectedGrps.push(cb.value); });
+            
+            const usrCheckboxes = document.querySelectorAll('.users-checkbox');
+            const selectedUsrs = [];
+            usrCheckboxes.forEach(cb => { if (cb.checked) selectedUsrs.push(cb.value); });
+            
+            currentConfig.target_groups = selectedGrps;
+            currentConfig.target_users = selectedUsrs;
+            
+            saveConfigToServer();
+        }
+        
+        function saveGeneralConfig() {
+            currentConfig.auto_reply = document.getElementById('toggle-autoreply').checked;
+            currentConfig.use_ocr = document.getElementById('toggle-ocr').checked;
+            currentConfig.media_format = document.getElementById('select-media-format').value;
+            saveConfigToServer();
+        }
+
+        // --- CATEGORY & CLIENT LOGIC ---
+        function renderCategories() {
+            const container = document.getElementById('categories-container');
+            container.innerHTML = '';
+            if (!currentConfig.valid_categories) return;
+            
+            currentConfig.valid_categories.forEach((cat, index) => {
+                container.innerHTML += `
+                    <div class="flex items-center bg-slate-100 border border-slate-200 px-3 py-1 rounded-full">
+                        <span class="font-semibold text-slate-700 text-xs tracking-wide">${cat}</span>
+                        <button onclick="removeCategory(${index})" class="text-slate-400 hover:text-red-500 transition ml-2">
+                            <svg class="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+                        </button>
+                    </div>
+                `;
+            });
+        }
+
+        function addCategory() {
+            const input = document.getElementById('new-category-input');
+            const val = input.value.trim().toUpperCase().replace(/[^A-Z0-9_-]/g, '');
+            if (val) {
+                if (!currentConfig.valid_categories) currentConfig.valid_categories = [];
+                if (!currentConfig.valid_categories.includes(val)) {
+                    currentConfig.valid_categories.push(val);
+                    input.value = '';
+                    renderCategories();
+                    saveConfigToServer();
+                }
+            }
+        }
+
+        function removeCategory(index) {
+            if(!confirm("Are you sure you want to delete this category?")) return;
+            currentConfig.valid_categories.splice(index, 1);
+            renderCategories();
+            saveConfigToServer();
+        }
+
+        function renderClients() {
+            const container = document.getElementById('clients-container');
+            container.innerHTML = '';
+            
+            if (!currentConfig.known_clients || currentConfig.known_clients.length === 0) {
+                container.innerHTML = '<p class="text-slate-400 text-sm col-span-4">No dictionary keywords configured.</p>';
+                return;
+            }
+            
+            currentConfig.known_clients.forEach((client, index) => {
+                container.innerHTML += `
+                    <div class="flex justify-between items-center bg-blue-50 border border-blue-100 px-3 py-2 rounded">
+                        <span class="font-semibold text-blue-800 text-sm tracking-wide">${client}</span>
+                        <button onclick="removeClient(${index})" class="text-slate-400 hover:text-red-500 transition ml-2">
+                            <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+                        </button>
+                    </div>
+                `;
+            });
+        }
+
+        function addClient() {
+            const input = document.getElementById('new-client-input');
+            const val = input.value.trim().toUpperCase();
+            if (val) {
+                if (!currentConfig.known_clients) currentConfig.known_clients = [];
+                if (!currentConfig.known_clients.includes(val)) {
+                    currentConfig.known_clients.push(val);
+                    input.value = '';
+                    renderClients();
+                    saveConfigToServer();
+                }
+            }
+        }
+
+        function removeClient(index) {
+            if(!confirm("Are you sure you want to delete this keyword?")) return;
+            currentConfig.known_clients.splice(index, 1);
+            renderClients();
+            saveConfigToServer();
+        }
+
+        async function saveConfigToServer() {
+            try {
+                const res = await fetch('/api/config', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(currentConfig)
+                });
+                
+                if (res.ok) showToast("Configuration saved successfully");
+                else showToast("Failed to save configuration", "error");
+            } catch (e) {
+                showToast("Network error", "error");
+            }
+        }
+
+        // --- FILE EXPLORER LOGIC ---
+        async function fetchFiles(path) {
+            currentExplorerPath = path;
+            renderBreadcrumbs();
+            
+            // Bersihkan input pencarian saat pindah folder
+            const searchInput = document.getElementById('explorer-search');
+            if (searchInput) searchInput.value = '';
+            
+            const listContainer = document.getElementById('explorer-list');
+            const loading = document.getElementById('explorer-loading');
+            
+            listContainer.innerHTML = '';
+            loading.classList.remove('hidden');
+            
+            try {
+                const res = await fetch('/api/files?path=' + encodeURIComponent(path));
+                const items = await res.json();
+                
+                loading.classList.add('hidden');
+                
+                // Tambahkan tombol Kembali jika tidak di Root
+                if (path !== '') {
+                    const lastSlash = path.lastIndexOf('/');
+                    const parentPath = lastSlash !== -1 ? path.substring(0, lastSlash) : '';
+                    listContainer.innerHTML += `
+                        <div class="grid grid-cols-12 gap-4 px-6 py-2.5 border-b border-slate-100 hover:bg-slate-50 cursor-pointer items-center transition" onclick="fetchFiles('${escapeQuotes(parentPath)}')">
+                            <div class="col-span-8 flex items-center text-sm font-semibold text-blue-600">
+                                <span class="text-xl mr-3">↩️</span> 
+                                <span>[ Kembali ke folder sebelumnya ]</span>
+                            </div>
+                            <div class="col-span-4 text-right">
+                                <span class="text-xs text-slate-400 font-semibold px-2 py-0.5 bg-slate-100 rounded">Kembali</span>
+                            </div>
+                        </div>
+                    `;
+                }
+                
+                if (items.length === 0 && path === '') {
+                    listContainer.innerHTML = `<div class="p-8 text-center text-slate-400">Folder is empty.</div>`;
+                    return;
+                }
+                
+                items.forEach(item => {
+                    const icon = item.isDirectory ? '📁' : '📄';
+                    const typeText = item.isDirectory ? 'Folder' : 'File';
+                    
+                    let actionHtml = '';
+                    let mainDivAction = '';
+                    
+                    if (item.isDirectory) {
+                        mainDivAction = `onclick="fetchFiles('${escapeQuotes(item.path)}')"`;
+                        actionHtml = `<button class="text-xs font-semibold text-blue-600 bg-blue-50 hover:bg-blue-100 border border-blue-200 px-2 py-1 rounded transition">📂 Buka</button>`;
+                    } else {
+                        const ext = item.name.substring(item.name.lastIndexOf('.')).toLowerCase();
+                        const isImg = ['.jpg', '.jpeg', '.png', '.webp'].includes(ext);
+                        
+                        if (isImg) {
+                            mainDivAction = `onclick="openModal('${escapeQuotes(item.url)}')"`;
+                            actionHtml = `
+                                <div class="flex items-center space-x-1" onclick="event.stopPropagation()">
+                                    <span class="text-[10px] text-slate-400 mr-1 hidden sm:inline">Format:</span>
+                                    <a href="/api/download?path=${encodeURIComponent(item.path)}&format=webp" download="${item.name.substring(0, item.name.lastIndexOf('.'))}.webp" class="text-[10px] font-bold text-slate-700 bg-slate-100 hover:bg-slate-200 px-1.5 py-0.5 rounded transition border border-slate-300">WEBP</a>
+                                    <a href="/api/download?path=${encodeURIComponent(item.path)}&format=jpg" download="${item.name.substring(0, item.name.lastIndexOf('.'))}.jpg" class="text-[10px] font-bold text-slate-700 bg-slate-100 hover:bg-slate-200 px-1.5 py-0.5 rounded transition border border-slate-300">JPG</a>
+                                    <a href="/api/download?path=${encodeURIComponent(item.path)}&format=png" download="${item.name.substring(0, item.name.lastIndexOf('.'))}.png" class="text-[10px] font-bold text-slate-700 bg-slate-100 hover:bg-slate-200 px-1.5 py-0.5 rounded transition border border-slate-300">PNG</a>
+                                </div>
+                            `;
+                        } else {
+                            mainDivAction = `onclick="window.open('${item.url}', '_blank')"`;
+                            actionHtml = `
+                                <a href="${item.url}" download="${item.name}" onclick="event.stopPropagation()" class="text-xs font-semibold text-blue-600 hover:bg-blue-50 px-2 py-1 rounded border border-blue-200 inline-block transition">
+                                    📥 Download
+                                </a>
+                            `;
+                        }
+                    }
+                    
+                    listContainer.innerHTML += `
+                        <div class="grid grid-cols-12 gap-4 px-6 py-3 border-b border-slate-100 hover:bg-slate-50 cursor-pointer items-center transition" ${mainDivAction}>
+                            <div class="col-span-6 md:col-span-8 flex items-center text-sm font-medium text-slate-700">
+                                <span class="text-xl mr-3">${icon}</span> 
+                                <span class="truncate font-semibold" title="${escapeHtml(item.name)}">${escapeHtml(item.name)}</span>
+                            </div>
+                            <div class="col-span-6 md:col-span-4 text-right flex justify-end items-center space-x-3">
+                                <span class="text-xs text-slate-400 hidden md:inline">${typeText}</span>
+                                ${actionHtml}
+                            </div>
+                        </div>
+                    `;
+                });
+                
+            } catch (err) {
+                loading.classList.add('hidden');
+                listContainer.innerHTML = `<div class="p-8 text-center text-red-500">Error loading files. Access Denied.</div>`;
+            }
+        }
+
+        function filterExplorer() {
+            const query = document.getElementById('explorer-search').value.toLowerCase();
+            const listItems = document.getElementById('explorer-list').children;
+            for (let item of listItems) {
+                // Jangan sembunyikan tombol kembali
+                if (item.innerText.includes('Kembali ke folder sebelumnya')) continue;
+                
+                const nameSpan = item.querySelector('.truncate');
+                if (nameSpan) {
+                    const name = nameSpan.innerText.toLowerCase();
+                    if (name.includes(query)) {
+                        item.style.setProperty('display', 'grid', 'important');
+                    } else {
+                        item.style.setProperty('display', 'none', 'important');
+                    }
+                }
+            }
+        }
+
+        function renderBreadcrumbs() {
+            const container = document.getElementById('breadcrumbs');
+            const parts = currentExplorerPath.split('/').filter(p => p.length > 0);
+            
+            let html = `<span class="cursor-pointer hover:text-blue-600 font-semibold" onclick="fetchFiles('')">Root</span>`;
+            
+            let accumulatedPath = '';
+            parts.forEach((part, index) => {
+                accumulatedPath += (accumulatedPath === '' ? '' : '/') + part;
+                html += ` <span class="text-slate-300 mx-1">/</span> `;
+                if (index === parts.length - 1) {
+                    html += `<span class="text-slate-600 font-medium">${part}</span>`;
+                } else {
+                    const currentAcc = accumulatedPath; // bind to block scope
+                    html += `<span class="cursor-pointer hover:text-blue-600" onclick="fetchFiles('${escapeQuotes(currentAcc)}')">${escapeHtml(part)}</span>`;
+                }
+            });
+            
+            container.innerHTML = html;
+        }
+
+        // --- MODAL LOGIC ---
+        function openModal(imgUrl) {
+            document.getElementById('modal-image').src = imgUrl;
+            document.getElementById('image-modal').classList.remove('hidden');
+        }
+
+        function closeModal() {
+            document.getElementById('image-modal').classList.add('hidden');
+            document.getElementById('modal-image').src = '';
+        }
+
+        // --- HISTORY LOGIC ---
+        let currentHistoryFilter = 'ALL';
+        let cachedHistoryLogs = [];
+
+        async function fetchHistory(filterStatus = 'ALL', forceRefresh = false) {
+            currentHistoryFilter = filterStatus;
+            
+            // Update filter buttons UI
+            ['ALL', 'SUCCESS', 'WARNING', 'ERROR'].forEach(s => {
+                const btn = document.getElementById('filter-' + s);
+                if(s === filterStatus) {
+                    btn.className = "px-3 py-1 rounded text-sm font-medium bg-slate-800 text-white transition";
+                } else {
+                    btn.className = "px-3 py-1 rounded text-sm font-medium bg-slate-100 text-slate-600 hover:bg-slate-200 transition";
+                }
+            });
+            
+            const listContainer = document.getElementById('history-list');
+            const loading = document.getElementById('history-loading');
+            
+            if (forceRefresh || cachedHistoryLogs.length === 0) {
+                listContainer.innerHTML = '';
+                loading.classList.remove('hidden');
+                try {
+                    const res = await fetch('/api/history');
+                    cachedHistoryLogs = await res.json();
+                } catch (err) {
+                    loading.classList.add('hidden');
+                    listContainer.innerHTML = `<div class="p-8 text-center text-red-500">Failed to load history logs.</div>`;
+                    return;
+                }
+            }
+            
+            loading.classList.add('hidden');
+            listContainer.innerHTML = '';
+            let logs = cachedHistoryLogs;
+            
+            if (filterStatus !== 'ALL') {
+                logs = logs.filter(log => log.status === filterStatus);
+            }
+            
+            if (logs.length === 0) {
+                listContainer.innerHTML = `<div class="p-8 text-center text-slate-400">No activity history found.</div>`;
+                return;
+            }
+            
+            logs.forEach(log => {
+                    const date = new Date(log.timestamp);
+                    const timeStr = date.toLocaleTimeString() + ' - ' + date.toLocaleDateString();
+                    
+                    let statusIcon = 'ℹ️';
+                    let bgClass = 'hover:bg-slate-50';
+                    if (log.status === 'SUCCESS') statusIcon = '✅';
+                    if (log.status === 'WARNING') { statusIcon = '⚠️'; bgClass = 'bg-yellow-50/30 hover:bg-yellow-50/50'; }
+                    if (log.status === 'ERROR') { statusIcon = '❌'; bgClass = 'bg-red-50/30 hover:bg-red-50/50'; }
+                    
+                    listContainer.innerHTML += `
+                        <div class="grid grid-cols-12 gap-4 px-6 py-3 border-b border-slate-100 transition ${bgClass} items-start">
+                            <div class="col-span-2 text-xs text-slate-500 mt-1">${escapeHtml(timeStr)}</div>
+                            <div class="col-span-2 text-xs font-bold text-slate-700 mt-1">${escapeHtml(log.type)}</div>
+                            <div class="col-span-3 text-sm font-medium text-slate-700 break-all">${escapeHtml(log.sender)}</div>
+                            <div class="col-span-5 text-sm text-slate-600 flex items-start">
+                                <span class="mr-2">${statusIcon}</span>
+                                <span>${escapeHtml(log.details)}</span>
+                            </div>
+                        </div>
+                    `;
+                });
+            } catch (err) {
+                loading.classList.add('hidden');
+                listContainer.innerHTML = `<div class="p-8 text-center text-red-500">Failed to load history logs.</div>`;
+            }
+        }
+
+        // Start
+        window.onload = init;
+    </script>
+</body>
+</html>

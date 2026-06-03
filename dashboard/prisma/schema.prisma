@@ -1,0 +1,63 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Config {
+  id               Int      @id @default(1)
+  autoReply        Boolean  @default(true)
+  useOcr           Boolean  @default(false)
+  mediaFormat      String   @default("original") // 'original' or 'webp_lossless'
+  updatedAt        DateTime @updatedAt
+}
+
+model TargetUser {
+  id        String   @id // WhatsApp ID (e.g. 628123456789@c.us)
+  name      String?
+  createdAt DateTime @default(now())
+}
+
+model TargetGroup {
+  id        String   @id // WhatsApp Group ID
+  name      String?
+  createdAt DateTime @default(now())
+}
+
+model ValidCategory {
+  id        Int      @id @default(autoincrement())
+  name      String   @unique
+  aliases   String[] // Array of strings for aliases
+  createdAt DateTime @default(now())
+}
+
+model ClientKeyword {
+  id        Int      @id @default(autoincrement())
+  name      String   @unique
+  aliases   String[] // Array of strings for aliases
+  createdAt DateTime @default(now())
+}
+
+model Document {
+  id        Int      @id @default(autoincrement())
+  fileName  String
+  filePath  String
+  fileUrl   String?
+  category  String
+  client    String
+  poNumber  String
+  sender    String
+  timestamp DateTime @default(now())
+}
+
+model LogHistory {
+  id        Int      @id @default(autoincrement())
+  type      String
+  sender    String
+  details   String
+  status    String   // SUCCESS, ERROR, WARNING, INFO
+  timestamp DateTime @default(now())
+}

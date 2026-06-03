@@ -1,0 +1,97 @@
+@import "tailwindcss";
+
+@theme {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-border: var(--border);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  
+  /* Typography Scales mapped to Design Tokens */
+  --text-xs: var(--fs-xs);
+  --text-sm: var(--fs-sm);
+  --text-base: var(--fs-base);
+  --text-lg: var(--fs-lg);
+  --text-xl: var(--fs-xl);
+  --text-2xl: var(--fs-2xl);
+  --text-3xl: var(--fs-3xl);
+  
+  --font-sans: 'Inter', ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+}
+
+:root {
+  /* LIGHT MODE (Off-white hierarchy) */
+  --background: #f4f5f7;       /* App background (slightly gray) */
+  --foreground: #1e293b;       /* Not pure black, dark slate */
+  
+  --card: #fdfdfd;             /* Card background (near white, sits above bg) */
+  --card-foreground: #1e293b;
+  
+  --border: #e2e8f0;           /* Subtle border */
+  
+  --primary: #3b82f6;
+  --primary-foreground: #f8fafc;
+  
+  --muted: #e2e8f0;            /* Muted component background (hover states, secondary cards) */
+  --muted-foreground: #64748b; /* Gray text */
+
+  /* TYPOGRAPHY DESIGN TOKENS (Premium Product Scale) */
+  --fs-xs: 12px;         /* Caption, metadata, tag badge */
+  --fs-sm: 14px;         /* Standard table content, normal button text, secondary label */
+  --fs-base: 16px;       /* Primary UI body text, main labels, file names, input fields */
+  --fs-lg: 18px;         /* Section headers, card titles, subheadings */
+  --fs-xl: 22px;         /* Dashboard headers, modal titles */
+  --fs-2xl: 28px;        /* Major page headings, big stats value */
+  --fs-3xl: 36px;        /* Hero titles, massive stats banner */
+  
+  --table-py: 10px;      /* Dense cell padding, comfortable & highly readable */
+  --table-px: 16px;
+}
+
+.dark {
+  /* DARK MODE (Off-black hierarchy) */
+  --background: #0f1115;       /* Very dark slate, not pure black */
+  --foreground: #e2e8f0;       /* Off-white text */
+  
+  --card: #16191f;             /* Slightly lighter than background to create depth */
+  --card-foreground: #f8fafc;
+  
+  --border: #262b33;           /* Subtle dark border */
+  
+  --primary: #3b82f6;
+  --primary-foreground: #ffffff;
+  
+  --muted: #1e2229;            /* Muted component background */
+  --muted-foreground: #94a3b8; /* Dimmed text */
+}
+
+body {
+  background-color: var(--background);
+  color: var(--foreground);
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Linear-style utilities */
+.glass-panel {
+  background: var(--card);
+  border: 1px solid var(--border);
+  box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.03);
+}
+
+.dark .glass-panel {
+  box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.2);
+}
+
+/* COMPACT SPACING SYSTEM TOKENS */
+.cell-token-dense {
+  padding-top: var(--table-py);
+  padding-bottom: var(--table-py);
+  padding-left: var(--table-px);
+  padding-right: var(--table-px);
+}
+
