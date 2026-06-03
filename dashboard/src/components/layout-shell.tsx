@@ -15,7 +15,8 @@ import {
   Users,
   FileText,
   GitBranch,
-  Radio
+  Radio,
+  Zap
 } from "lucide-react";
 import { ThemeToggle } from "./theme-toggle";
 
@@ -28,6 +29,7 @@ export function LayoutShell({ children }: { children: React.ReactNode }) {
     { name: "Live Chat", href: "/chat", icon: MessageCircle },
     { name: "Pipelines", href: "/pipelines", icon: GitBranch },
     { name: "Broadcasts", href: "/broadcasts", icon: Radio },
+    { name: "Automations", href: "/automations", icon: Zap },
     { name: "Document Center", href: "/documents", icon: FolderSearch },
     { name: "Contacts", href: "/contacts", icon: Users },
     { name: "Activity History", href: "/history", icon: History },

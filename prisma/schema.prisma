@@ -172,3 +172,19 @@ model BroadcastTarget {
   broadcast    Broadcast @relation(fields: [broadcastId], references: [id], onDelete: Cascade)
   contact      Contact   @relation(fields: [contactId], references: [id], onDelete: Cascade)
 }
+
+// --- WACRM HYBRID: PHASE 4 (AUTOMATIONS) ---
+
+model Automation {
+  id              String   @id @default(cuid())
+  name            String
+  description     String?
+  triggerType     String   // new_message_received, keyword_match, new_contact_created, tag_added, time_based
+  triggerConfig   Json     @default("{}")
+  steps           Json     @default("[]")
+  isActive        Boolean  @default(false)
+  executionCount  Int      @default(0)
+  lastExecutedAt  DateTime?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+}

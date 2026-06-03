@@ -7,6 +7,7 @@ const fs = require('fs');
 const configModule = require('./config');
 const { imageBuffer, processImageGroup, DIRS, getFormattedDateAndTime } = require('./fileManager');
 const { prisma } = require('./db');
+const { evaluateAutomations } = require('./automations');
 
 let lidMap = {};
 let cachedGroups = [];
@@ -270,6 +271,11 @@ function setupWhatsApp() {
                         client.sendMessage(msg.from, `🤖 *Bot WhatsApp Aktif*\nSiap menerima dan mengklasifikasikan dokumen Anda.`);
                     }
                 }
+            }
+
+            // Run automation engine for inbound messages
+            if (!msg.fromMe) {
+                evaluateAutomations(client, msg).catch(err => console.error('[Auto] Error:', err.message));
             }
         } catch (err) {
             console.error('Error saat memproses pesan:', err);
