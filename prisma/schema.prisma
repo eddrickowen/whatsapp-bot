@@ -75,3 +75,72 @@ model FolderMapping {
   createdAt  DateTime @default(now())
   updatedAt  DateTime @updatedAt
 }
+
+// --- WACRM HYBRID: PHASE 1 (CONTACTS) ---
+
+model Contact {
+  id        String   @id @default(cuid())
+  phone     String   @unique // WhatsApp ID (e.g. 628123456789@c.us)
+  name      String?
+  email     String?
+  company   String?
+  avatarUrl String?
+  tags      ContactTag[]
+  deals     Deal[]
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Tag {
+  id        String   @id @default(cuid())
+  name      String   @unique
+  color     String?
+  contacts  ContactTag[]
+}
+
+model ContactTag {
+  contactId String
+  tagId     String
+  contact   Contact @relation(fields: [contactId], references: [id], onDelete: Cascade)
+  tag       Tag     @relation(fields: [tagId], references: [id], onDelete: Cascade)
+
+  @@id([contactId, tagId])
+}
+
+// --- WACRM HYBRID: PHASE 2 (PIPELINES & DEALS) ---
+
+model Pipeline {
+  id        String   @id @default(cuid())
+  name      String
+  stages    Stage[]
+  deals     Deal[]
+  createdAt DateTime @default(now())
+}
+
+model Stage {
+  id         String   @id @default(cuid())
+  pipelineId String
+  pipeline   Pipeline @relation(fields: [pipelineId], references: [id], onDelete: Cascade)
+  name       String
+  position   Int
+  color      String
+  deals      Deal[]
+  createdAt  DateTime @default(now())
+}
+
+model Deal {
+  id          String   @id @default(cuid())
+  pipelineId  String
+  pipeline    Pipeline @relation(fields: [pipelineId], references: [id], onDelete: Cascade)
+  stageId     String
+  stage       Stage    @relation(fields: [stageId], references: [id], onDelete: Cascade)
+  contactId   String?
+  contact     Contact? @relation(fields: [contactId], references: [id], onDelete: SetNull)
+  title       String
+  value       Float    @default(0)
+  currency    String?  @default("USD")
+  notes       String?
+  status      String   @default("open") // 'open', 'won', 'lost'
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
