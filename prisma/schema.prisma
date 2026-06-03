@@ -87,6 +87,7 @@ model Contact {
   avatarUrl String?
   tags      ContactTag[]
   deals     Deal[]
+  broadcastTargets BroadcastTarget[]
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 }
@@ -143,4 +144,31 @@ model Deal {
   status      String   @default("open") // 'open', 'won', 'lost'
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
+}
+
+// --- WACRM HYBRID: PHASE 3 (BROADCASTS) ---
+
+model Broadcast {
+  id               String   @id @default(cuid())
+  name             String
+  message          String
+  status           String   @default("draft") // draft, sending, completed, failed
+  totalRecipients  Int      @default(0)
+  sentCount        Int      @default(0)
+  scheduledAt      DateTime?
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+  
+  targets          BroadcastTarget[]
+}
+
+model BroadcastTarget {
+  id           String @id @default(cuid())
+  broadcastId  String
+  contactId    String
+  status       String @default("pending") // pending, sent, failed
+  errorMsg     String?
+  
+  broadcast    Broadcast @relation(fields: [broadcastId], references: [id], onDelete: Cascade)
+  contact      Contact   @relation(fields: [contactId], references: [id], onDelete: Cascade)
 }

@@ -4,6 +4,11 @@ const http = require('http');
 const { Server } = require('socket.io');
 
 const { getCachedGroups, getCachedContacts, fetchContactsEfficiently } = require('./whatsapp');
+const { PrismaClient } = require('@prisma/client');
+const prisma = new PrismaClient();
+
+const BROADCAST_CHUNK_SIZE = 5;   // messages per tick
+const BROADCAST_TICK_MS   = 8000; // 8 seconds between chunks (anti-ban pacing)
 
 let ioInstance;
 
@@ -86,7 +91,78 @@ function setupInternalApi(client) {
     return server;
 }
 
+/**
+ * Background broadcast worker.
+ * Runs every BROADCAST_TICK_MS and sends a small chunk of pending targets.
+ * Updates target status and broadcast sentCount in real-time.
+ */
+async function broadcastWorker(client) {
+    try {
+        // Find any broadcast that is currently in 'sending' state
+        const activeBroadcasts = await prisma.broadcast.findMany({
+            where: { status: 'sending' },
+            include: {
+                targets: {
+                    where: { status: 'pending' },
+                    include: { contact: true },
+                    take: BROADCAST_CHUNK_SIZE
+                }
+            }
+        });
+
+        for (const broadcast of activeBroadcasts) {
+            if (broadcast.targets.length === 0) {
+                // No more pending targets — mark as completed
+                await prisma.broadcast.update({
+                    where: { id: broadcast.id },
+                    data: { status: 'completed' }
+                });
+                console.log(`[Broadcast] "${broadcast.name}" completed.`);
+                continue;
+            }
+
+            for (const target of broadcast.targets) {
+                const phone = target.contact?.phone;
+                if (!phone) {
+                    await prisma.broadcastTarget.update({
+                        where: { id: target.id },
+                        data: { status: 'failed', errorMsg: 'No phone number' }
+                    });
+                    continue;
+                }
+
+                try {
+                    await client.sendMessage(phone, broadcast.message);
+                    await prisma.broadcastTarget.update({
+                        where: { id: target.id },
+                        data: { status: 'sent' }
+                    });
+                    await prisma.broadcast.update({
+                        where: { id: broadcast.id },
+                        data: { sentCount: { increment: 1 } }
+                    });
+                    console.log(`[Broadcast] Sent to ${phone}`);
+                } catch (err) {
+                    await prisma.broadcastTarget.update({
+                        where: { id: target.id },
+                        data: { status: 'failed', errorMsg: err.message?.substring(0, 200) }
+                    });
+                    console.error(`[Broadcast] Failed to send to ${phone}:`, err.message);
+                }
+            }
+        }
+    } catch (err) {
+        console.error('[Broadcast Worker] Error:', err.message);
+    }
+}
+
+function startBroadcastWorker(client) {
+    console.log('[Broadcast Worker] Started. Polling every', BROADCAST_TICK_MS / 1000, 'seconds.');
+    setInterval(() => broadcastWorker(client), BROADCAST_TICK_MS);
+}
+
 module.exports = {
     setupInternalApi,
-    getIO
+    getIO,
+    startBroadcastWorker
 };

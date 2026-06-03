@@ -1,5 +1,5 @@
 const { setupWhatsApp } = require('./src/whatsapp');
-const { setupInternalApi } = require('./src/server');
+const { setupInternalApi, startBroadcastWorker } = require('./src/server');
 
 // Initialize WhatsApp client
 const client = setupWhatsApp();
@@ -8,6 +8,8 @@ const client = setupWhatsApp();
 const internalApp = setupInternalApi(client);
 internalApp.listen(3001, () => {
     console.log(`📡 Internal API aktif di port 3001 untuk melayani Dashboard.`);
+    // Start the broadcast sender worker after the server is live
+    startBroadcastWorker(client);
 });
 
 console.log(`\n===================================================`);
